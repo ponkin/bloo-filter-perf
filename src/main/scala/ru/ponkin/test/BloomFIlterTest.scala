@@ -1,7 +1,10 @@
 package ru.ponkin.test
 
-import java.io.{ ByteArrayInputStream, ByteArrayOutputStream }
+import java.io.FileOutputStream
+import java.util.zip.{ GZIPOutputStream, ZipOutputStream }
+import com.esotericsoftware.kryo.io.Output
 import org.apache.spark.util.sketch.BloomFilter
+import com.esotericsoftware.kryo.Kryo
 
 import scala.reflect.ClassTag
 import scala.util.Random
@@ -20,27 +23,19 @@ object BloomFilterTest extends App {
   val r = new Random(32)
 
   val oldFilter = BloomFilter.create(numItems)
-  val newFilter = BloomFilter.createNew(numItems)
-  val old128Filter = BloomFilter.create128(numItems)
   val compressedFilter = BloomFilter.createCompressed(numItems)
   val items = Array.fill(numItems) { r.nextString(r.nextInt(512)) }
 
-  time("new put") { items.foreach(newFilter.put) }
-  time("old128 put") { items.foreach(old128Filter.put) }
   time("old put") { items.foreach(oldFilter.put) }
   time("compressed put") { items.foreach(compressedFilter.put) }
-  time("new mightContain") { items.foreach(newFilter.mightContain) }
-  time("old128 mightContain") { items.foreach(old128Filter.mightContain) }
   time("old mightContain") { items.foreach(oldFilter.mightContain) }
   time("compressed mightContain") { items.foreach(compressedFilter.mightContain) }
 
-  val oldBos = new ByteArrayOutputStream()
-  val newBos = new ByteArrayOutputStream()
-
-  newFilter.writeTo(newBos)
-  oldFilter.writeTo(oldBos)
-  println(s"old size - ${oldBos.size()}")
-  println(s"new size - ${newBos.size()}")
-
+  val plain = new FileOutputStream("plain.bin")
+  val compressed = new FileOutputStream("compressed.bin")
+  oldFilter.writeTo(plain)
+  compressedFilter.writeTo(compressed)
+  plain.close()
+  compressed.close()
 }
 

@@ -8,5 +8,7 @@ settings(
 enablePlugins(JavaAppPackaging)
 
 libraryDependencies ++= Seq(
-  "org.roaringbitmap" % "RoaringBitmap" % "0.6.9"
+  "org.roaringbitmap" % "RoaringBitmap" % "0.6.9",
+  "me.lemire.integercompression" % "JavaFastPFOR" % "0.1.9",
+  "com.esotericsoftware" % "kryo" % "4.0.0"
 )

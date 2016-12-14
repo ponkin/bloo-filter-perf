@@ -340,10 +340,10 @@ public abstract class BloomFilter {
 
   public static BloomFilter createCompressed(long expectedNumItems) {
     if (DEFAULT_FPP >= probs[minBuckets][minK]) {
-	    return new BloomFilterImpl(2, optKPerBuckets[2]*expectedNumItems);
+	    return new OldBloomFilterImpl(2, optKPerBuckets[2]*expectedNumItems);
     }
     if (DEFAULT_FPP < probs[maxBuckets][maxK]) {
-	    return new BloomFilterImpl(maxK, maxBuckets*expectedNumItems);
+	    return new OldBloomFilterImpl(maxK, maxBuckets*expectedNumItems);
     }
 
     // First find the minimal required number of buckets:
@@ -359,7 +359,7 @@ public abstract class BloomFilter {
 	    K--;
     }
 
-    return new BloomFilterImpl(K, bucketsPerElement*expectedNumItems);
+    return new OldBloomFilterImpl(K, bucketsPerElement*expectedNumItems);
   }
 }
 

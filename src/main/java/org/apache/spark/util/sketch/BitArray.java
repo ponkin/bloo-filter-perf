@@ -21,6 +21,14 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
+import me.lemire.integercompression.differential.*;
+import me.lemire.integercompression.IntWrapper;
+import me.lemire.integercompression.Composition;
+import me.lemire.integercompression.FastPFOR;
+import me.lemire.integercompression.IntegerCODEC;
+import me.lemire.integercompression.VariableByte;
+
+import java.util.*;
 
 final class BitArray {
   private final long[] data;
@@ -85,11 +93,64 @@ final class BitArray {
     this.bitCount = bitCount;
   }
 
-  void writeTo(DataOutputStream out) throws IOException {
-    out.writeInt(data.length);
-    for (long datum : data) {
-      out.writeLong(datum);
+  void writeTo0(DataOutputStream out) throws IOException {
+    for(long chunk: data) {
+      out.writeLong(chunk);
     }
+  }
+
+  void writeTo(DataOutputStream out) throws IOException {
+    int[] sortedHashes = new int[(int)bitCount];
+    int previousHash = 0;
+    int idx = 0;
+    for(int i=0;i<data.length;i++) {
+      long chunk = data[i];
+      int offset = 0;
+      while(chunk != 0) {
+        if((chunk & 1L) == 1L) {
+          if(previousHash == 0) {
+            sortedHashes[idx++] = i * 64 + offset;
+            previousHash = i * 64 + offset;
+          } else {
+            int diff = (i * 64 + offset) - previousHash;
+            sortedHashes[idx++] = diff;
+            previousHash = i * 64 + offset; 
+          }
+        }
+        chunk = chunk >>> 1L;
+        offset += 1;
+      }
+    }
+    double e = (data.length*64.0)/bitCount;
+    System.out.printf("E=%1$f\n",e);
+    int k = (int)Math.ceil(Math.log(e)/Math.log(2.0));
+    System.out.printf("k=%1$d\n",k);
+    int m = (int)Math.pow(2, k);
+    System.out.printf("m=%1$d\n",m);
+    java.util.BitSet vector = new java.util.BitSet();
+    int pos = 0;
+    int mask = 1 << k;
+    for(int i=0;i<sortedHashes.length;i++) {
+      int q = sortedHashes[i] >> k;
+      while(q-->0) {
+        vector.set(pos++,true);
+      }
+      vector.set(pos++,false);
+      while(mask !=0) {
+        if((sortedHashes[i] & mask) == 1) {
+          vector.set(pos,true);
+        } else {
+          vector.set(pos, false);
+        }
+        mask = mask >> 1;
+        pos++;
+      }
+    }
+    byte[] bytes = vector.toByteArray();
+    for(byte chunk: bytes) {
+      out.writeByte(chunk);
+    }
+
   }
 
   static BitArray readFrom(DataInputStream in) throws IOException {
